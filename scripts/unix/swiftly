@@ -1,0 +1,95 @@
+#!/bin/bash
+
+# Define functions for each command
+activate() {
+    # Run check_swiftly from swiftly.core.main.py
+    result=$(python3 -c "from swiftly.core.main import check_swiftly; print(check_swiftly())")
+
+    # Handle the result
+    case $result in
+        "init")
+            init  # Assuming you have an init function defined elsewhere in your script
+            exit 0  # Exit after initialization
+            ;;
+        "exit")
+            exit 0
+            ;;
+        "continue")
+            # Continue with the rest of the script
+            ;;
+        *)
+            echo "Unexpected result from check_swiftly: $result"
+            exit 1
+            ;;
+    esac
+
+    # Run get_name from swiftly.utils.get.py
+    project_name=$(python3 -c "from swiftly.utils.get import get_name; print(get_name())")
+    export SWIFTLY_PROJECT_NAME="$project_name"
+    export SWIFTLY_PROJECT_LOCATION="$(pwd)"
+
+    # Modify the shell prompt
+    export OLD_PS1="$PS1"  # Store the current PS1 value
+    PS1="(swiftly ${SWIFTLY_PROJECT_NAME}) $PS1"
+
+    # Run git_pull from swiftly.utils.git.py
+    python3 -c "from swiftly.utils.git import git_pull; git_pull()"
+
+    # Run get_runtime from swiftly.utils.get.py
+    runtime=$(python3 -c "from swiftly.utils.get import get_runtime; print(get_runtime())")
+
+    # Source the appropriate script and run the activate function
+    source "swiftly-${runtime}.sh"
+    "activate_${runtime}"  # This will call a function like activate_python, activate_node, etc. based on the runtime
+}
+
+deactivate() {
+    # deactivate swiftly project
+}
+
+init() {
+    echo "Running init function"
+    # Add your complex init command here
+}
+
+makeapp() {
+    echo "Running makeapp function"
+    # Add your complex makeapp command here
+}
+
+run() {
+    echo "Running run function"
+    # Add your complex run command here
+}
+
+install() {
+    echo "Running install function"
+    # Add your complex install command here
+}
+
+uninstall() {
+    echo "Running uninstall function"
+    # Add your complex uninstall command here
+}
+
+add_framework() {
+    echo "Running add-framework function"
+    # Add your complex add-framework command here
+}
+
+# Function to handle custom commands
+custom() {
+    echo "Running custom function with arguments: $@"
+    # Add your custom command handling logic here
+}
+
+# Check if a function exists and call it, otherwise call the custom function
+if declare -f "$1" > /dev/null; then
+    "$@"
+else
+    # Check if there's more than one argument
+    if [ $# -gt 1 ]; then
+        custom "${@:2}"  # Pass all arguments except the first one to custom
+    fi
+fi
+
