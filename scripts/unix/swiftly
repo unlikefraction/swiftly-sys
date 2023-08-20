@@ -5,7 +5,7 @@ source swiftly-utils.sh
 # Define functions for each command
 activate() {
     if ! is_sourced; then
-        echo -e "run this command as '\e[93msource swiftly activate\e[0m'"
+        echo -e "run this command as '\[\e[93m\]source swiftly activate\[\e[0m\]'"
         exit 1  # If sourced, use 'return'. If run as a script, use 'exit'.
     fi
 
@@ -63,6 +63,11 @@ activate() {
 }
 
 deactivate() {
+    if ! is_sourced; then
+        echo -e "run this command as '\[\e[93m\]source swiftly deactivate\[\e[0m\]'"
+        exit 1  # If sourced, use 'return'. If run as a script, use 'exit'.
+    fi
+
     # Check if the project is not activated
     if [[ "$SWIFTLY_ACTIVATED" != "true" ]]; then
         echo "Swiftly project is not activated."
