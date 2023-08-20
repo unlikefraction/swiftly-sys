@@ -1,47 +1,56 @@
+import os
 import subprocess
 
 import questionary
 
 from swiftly.utils.loader import Loader
 from swiftly.utils.get import get_config
+from swiftly.utils.cli import clireturn
 from swiftly.utils.do import add_to_config
 from swiftly.utils.check import is_swiftly, is_online, is_using_git
 from swiftly.core.config import SWIFTLY_PROJECT_LOCATION_VAR, SWIFTLY_PROJECT_NAME_VAR
 
 """
 ACTIVATE:
-
-PART 1: 
 """
 
 def check_swiftly():
     """check if it's swiftly project, and tell what to do next"""
-    
     if not is_swiftly():
         answer = questionary.confirm("This is not a swiftly project. Do you want to convert it to a swiftly project?").ask()
         if answer:
-            return "init"
+            clireturn("init")
         else:
-            return "exit"
+            clireturn("exit")
+    else:
+        clireturn("continue")
 
-    return "continue"
-
-def activate():
-    """Start the project setup."""
-    loader = Loader()
-    # Fetch runtime and frameworks from config
-    runtime = get_config("CONFIG", "runtime")
-    frameworks = get_config("CONFIG", "frameworks")
+        
+def update_swiftly(show_load=True):
+    """Update and install the latest version of swiftly-sys."""
+    if not is_online():
+        return
     
-    # Pull changes if the project uses git
-    if is_using_git():
-        loader.start("Pulling changes from git...")
-        try:
-            subprocess.run(["git", "pull"], check=True)
-            loader.end("Git pull completed!")
-        except subprocess.CalledProcessError:
-            loader.end("✗", "Failed to pull changes from git!", failed=True)
-            
+    loader = Loader()
+    
+    # Determine the appropriate python command based on the platform
+    python_command = "python3" if os.name == "posix" else "python"
+    
+    # Start the loader with a message
+    if show_load:
+        loader.start("Checking swiftly")
+    
+    try:
+        # Execute pip install to update swiftly-sys and check for errors
+        subprocess.run([python_command, "-m", "pip", "install", "swiftly-sys", "--upgrade", "--break-system-packages"], check=True, stdout=subprocess.PIPE)
+        if show_load:
+            loader.end("Checked swiftly")
+        
+    except subprocess.CalledProcessError:
+        if show_load:
+            loader.end("Failed to update swiftly", failed=True)
+
+
 """
 INIT
 """
@@ -49,14 +58,17 @@ INIT
 def init():
     """Initialize the project."""
     # Check if it's a swiftly project
-    if is_swiftly():
-        activate()
-    else:
-        print("This is not a swiftly project. Please convert it first.")
-        
+    pass
+
+
+"""
+MAKEAPP
+"""
+
 def makeapp():
     """Create a new app."""
-    # Logic for creating a new app goes here
+    # get_runtime
+    # get frameworks
     pass
 
 def install():

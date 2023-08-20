@@ -1,13 +1,11 @@
 import os
 import subprocess
-import platform
-import questionary
+import re
 
 from swiftly.utils.loader import Loader
 from swiftly.utils.get import get_config
-from swiftly.utils.do import add_to_config
-from swiftly.utils.check import is_using_git
-from swiftly.core.config import SWIFTLY_PROJECT_LOCATION_VAR, SWIFTLY_PROJECT_NAME_VAR
+from swiftly.utils.check import is_online
+from swiftly.core.config import SWIFTLY_PROJECT_LOCATION_VAR
 
 def detect_python():
     """Detect if the current directory is a Python project."""
@@ -25,65 +23,87 @@ def run_command(command, loader, success_message, error_message):
     else:
         loader.end(result.stderr + "\n" + error_message)
 
-def start():
-    """Start the project setup by upgrading swiftly-sys, pulling git changes, and installing requirements."""
-    loader = Loader()
-    
-    # Upgrade swiftly-sys
-    loader.start("Upgrading swiftly-sys...")
-    run_command(["pip", "install", "swiftly-sys", "--upgrade"], loader, "swiftly-sys upgraded successfully!", "Failed to upgrade swiftly-sys!")
-    
-    # Navigate to project location
-    os.chdir(os.environ[SWIFTLY_PROJECT_LOCATION_VAR])
-    
-    # Pull changes if the project uses git
-    if is_using_git():
-        loader.start("Pulling changes from git...")
-        run_command(["git", "pull"], loader, "Git pull completed!", "Failed to pull changes from git!")
-    
-    # Determine platform-specific commands
-    venv_command = "source" if platform.system() in ["Linux", "Darwin"] else "."
-    python_command = "python3" if platform.system() in ["Linux", "Darwin"] else "python"
-    
-    # Activate virtual environment
-    project_name = os.environ[SWIFTLY_PROJECT_NAME_VAR]
-    venv_name = f"venv{project_name}"
-    subprocess.run([venv_command, f"{venv_name}/bin/activate"])
-    
-    # Upgrade swiftly-sys inside virtual environment
-    loader.start("Upgrading swiftly-sys in virtual environment...")
-    run_command([python_command, "-m", "pip", "install", "swiftly-sys", "--upgrade"], loader, "swiftly-sys in virtual environment upgraded successfully!", "Failed to upgrade swiftly-sys in virtual environment!")
-    
-    # Install project requirements
-    if os.path.exists("requirements.txt"):
-        loader.start("Installing requirements...")
-        run_command([python_command, "-m", "pip", "install", "-r", "requirements.txt"], loader, "Requirements installed successfully!", "Failed to install requirements!")
+"""
+ACTIVATE
+"""
 
-def init():
-    """Initialize the project by creating a virtual environment and setting up the app."""
+def add_to_reqtxt():
+    """Add top-level packages to requirements.txt using pipdeptree."""
     os.chdir(os.environ[SWIFTLY_PROJECT_LOCATION_VAR])
     
-    # Create virtual environment
-    project_name = os.environ[SWIFTLY_PROJECT_NAME_VAR]
-    venv_name = f"venv{project_name}"
-    python_command = "python3" if platform.system() in ["Linux", "Darwin"] else "python"
+    try:
+        # Use pipdeptree to get packages in freeze format
+        result = subprocess.run(["pipdeptree", "--freeze", "--warn", "silence"], capture_output=True, text=True, check=True)
+        
+        # Filter the output using regex to get top-level packages
+        top_level_packages = re.findall(r'^[a-zA-Z0-9\-]+', result.stdout, re.MULTILINE)
+        
+        # Write top-level packages to requirements.txt
+        with open("requirements.txt", "w") as f:
+            for package in top_level_packages:
+                f.write(f"{package}\n")
+                
+    except subprocess.CalledProcessError:
+        print("Failed to generate requirements.txt using pipdeptree.")
+
+
+def install_requirements():
+    """Install requirements from requirements.txt."""
+    os.chdir(os.environ[SWIFTLY_PROJECT_LOCATION_VAR])
+    
+    # Check if requirements.txt exists, if not, create it
+    if not os.path.exists("requirements.txt"):
+        with open("requirements.txt", "w") as f:
+            pass  # Just create an empty file
+    
+    if not is_online():
+        print("You are not online. Please check your internet connection and try again.")
+        return
     
     loader = Loader()
-    loader.start("Creating virtual environment...")
-    run_command([python_command, "-m", "venv", venv_name], loader, "Virtual environment created successfully!", "Failed to create virtual environment!")
     
-    # Start project setup
-    start()
+    # Determine the appropriate python command based on the platform
+    python_command = "python3" if os.name == "posix" else "python"
     
-    # Check for object-oriented configuration and prompt user if needed
-    object_oriented = get_config("CONFIG", "object_oriented")
-    if not object_oriented:
-        answer = questionary.select("Do you want to use object-oriented programming?", choices=["Yes", "No"]).ask()
-        object_oriented = True if answer == "Yes" else False
-        add_to_config("CONFIG", "object_oriented", object_oriented)
+    loader.start("Installing requirements")
     
-    # Create the main app
-    makeapp(project_name)
+    # Install requirements from requirements.txt
+    try:
+        subprocess.run([python_command, "-m", "pip", "install", "-r", "requirements.txt"], check=True, stdout=subprocess.PIPE)
+        loader.end("Requirements installed successfully!")
+    except subprocess.CalledProcessError:
+        loader.end("Failed to install requirements!", failed=True)
+        return
+    
+    # Update requirements.txt with top-level packages
+    add_to_reqtxt()
+
+"""
+INIT
+"""
+
+# def init():
+#     """Initialize the project by creating a virtual environment and setting up the app."""
+#     os.chdir(os.environ[SWIFTLY_PROJECT_LOCATION_VAR])
+    
+#     # Create virtual environment
+#     project_name = os.environ[SWIFTLY_PROJECT_NAME_VAR]
+#     venv_name = f"venv{project_name}"
+#     python_command = "python3" if platform.system() in ["Linux", "Darwin"] else "python"
+    
+#     loader = Loader()
+#     loader.start("Creating virtual environment...")
+#     run_command([python_command, "-m", "venv", venv_name], loader, "Virtual environment created successfully!", "Failed to create virtual environment!")
+    
+#     # Check for object-oriented configuration and prompt user if needed
+#     object_oriented = get_config("CONFIG", "object_oriented")
+#     if not object_oriented:
+#         answer = questionary.select("Do you want to use object-oriented programming?", choices=["Yes", "No"]).ask()
+#         object_oriented = True if answer == "Yes" else False
+#         add_to_config("CONFIG", "object_oriented", object_oriented)
+    
+#     # Create the main app
+#     makeapp(project_name)
 
 def makeapp(app_name):
     """Create a new app with the given name and set up the necessary files."""

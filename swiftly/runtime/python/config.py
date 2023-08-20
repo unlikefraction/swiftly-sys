@@ -3,14 +3,6 @@ from swiftly.runtime.python.main import detect_python
 RUNTIME_CONFIG = {
     "name": "python",
     
-    # function to run from shell / bat script
-    "init": "init",
-    "start": "start",
-    "run": "run",
-    "makeapp": "makeapp",
-    "install": "install",
-    "uninstall": "uninstall",
-    
     # a python function that detects if runtime is the current runtime (in this case, detect if it's a python runtime)
     "detect": detect_python,
     

@@ -6,9 +6,10 @@ scripts = [f for f in glob.glob('scripts/unix/**/*', recursive=True) + glob.glob
 
 setup(
     name='swiftly-sys',
-    version='0.0.9',
+    version='0.0.31',
     license='Apache2',
     packages=find_packages(),
+    include_package_data=True,
     scripts=scripts,
     description = 'Do what you\'re good at; writing code. Swiftly handle the rest',
     long_description='''
@@ -20,5 +21,8 @@ setup(
     url = 'https://github.com/brainspoof/swiftly-sys',
     keywords = ['python project', 'project management', 'code management', 'project building', 'python project managment', 'organized project'],
     install_requires=[
+            'questionary',
+            'requests',
+            'pipdeptree',
         ],
 )

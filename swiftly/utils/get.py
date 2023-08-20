@@ -1,6 +1,20 @@
+import os
 import configparser
 import ast
-from swiftly.core.config import CONFIG_FILE
+from swiftly.core.config import CONFIG_FILE, SWIFTLY_PROJECT_LOCATION_VAR
+
+def get_config_file_path():
+    """
+    Determines the path to the config file. If SWIFTLY_PROJECT_LOCATION_VAR is set, 
+    it returns the config file path from the project's location. Otherwise, it returns the default CONFIG_FILE path.
+
+    Returns:
+    - str: Path to the config file.
+    """
+    project_location = os.environ.get(f'{SWIFTLY_PROJECT_LOCATION_VAR}')
+    if project_location:
+        return os.path.join(project_location, CONFIG_FILE)
+    return CONFIG_FILE
 
 def get_config(category, key):
     """
@@ -14,7 +28,7 @@ def get_config(category, key):
     - str: The value of the specified key under the given category. Returns None if not found.
     """
     config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
+    config.read(get_config_file_path())
     
     try:
         return config[category][key]

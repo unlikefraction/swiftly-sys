@@ -1,51 +1,103 @@
 #!/bin/bash
 
+source swiftly-utils.sh
+
 # Define functions for each command
 activate() {
+    if ! is_sourced; then
+        echo -e "run this command as '\e[93msource swiftly activate\e[0m'"
+        exit 1  # If sourced, use 'return'. If run as a script, use 'exit'.
+    fi
+
+    # Check if the project is already activated
+    if [[ "$SWIFTLY_ACTIVATED" == "true" ]]; then
+        echo "Swiftly project already activated."
+        return
+    fi
+
     # Run check_swiftly from swiftly.core.main.py
-    result=$(python3 -c "from swiftly.core.main import check_swiftly; print(check_swiftly())")
+    python3 -c "from swiftly.core.main import check_swiftly; check_swiftly()"
+    result=$(read_cli_result)
 
     # Handle the result
     case $result in
         "init")
             init  # Assuming you have an init function defined elsewhere in your script
-            exit 0  # Exit after initialization
+            return 0  # Exit after initialization
             ;;
         "exit")
-            exit 0
+            return 0
             ;;
         "continue")
             # Continue with the rest of the script
             ;;
         *)
             echo "Unexpected result from check_swiftly: $result"
-            exit 1
+            return 1
             ;;
     esac
 
-    # Run get_name from swiftly.utils.get.py
+    # update swiftly
+    python3 -c "from swiftly.core.main import update_swiftly; update_swiftly()"
+
+    # get swiftly project name
     project_name=$(python3 -c "from swiftly.utils.get import get_name; print(get_name())")
     export SWIFTLY_PROJECT_NAME="$project_name"
     export SWIFTLY_PROJECT_LOCATION="$(pwd)"
 
     # Modify the shell prompt
     export OLD_PS1="$PS1"  # Store the current PS1 value
-    PS1="(swiftly ${SWIFTLY_PROJECT_NAME}) $PS1"
 
-    # Run git_pull from swiftly.utils.git.py
+    # git pull
     python3 -c "from swiftly.utils.git import git_pull; git_pull()"
 
-    # Run get_runtime from swiftly.utils.get.py
+    # get swiftly project runtime
     runtime=$(python3 -c "from swiftly.utils.get import get_runtime; print(get_runtime())")
 
     # Source the appropriate script and run the activate function
     source "swiftly-${runtime}.sh"
     "activate_${runtime}"  # This will call a function like activate_python, activate_node, etc. based on the runtime
+
+    PS1="(swiftly ${SWIFTLY_PROJECT_NAME}) $OLD_PS1"
+    export SWIFTLY_ACTIVATED=true
 }
 
 deactivate() {
-    # deactivate swiftly project
+    # Check if the project is not activated
+    if [[ "$SWIFTLY_ACTIVATED" != "true" ]]; then
+        echo "Swiftly project is not activated."
+        return
+    fi
+
+    # Get the runtime
+    runtime=$(python3 -c "from swiftly.utils.get import get_runtime; print(get_runtime())")
+
+    # Source the appropriate script and run the deactivate function
+    source "swiftly-${runtime}.sh"
+    "deactivate_${runtime}"  # This will call a function like deactivate_python, deactivate_node, etc. based on the runtime
+
+    # Restore the original PS1 value
+    PS1="$OLD_PS1"
+    unset OLD_PS1
+
+    # Unset the SWIFTLY_ACTIVATED variable
+    unset SWIFTLY_ACTIVATED
+
+    # Unset SWIFTLY specific variables
+    unset SWIFTLY_PROJECT_NAME
+    unset SWIFTLY_PROJECT_LOCATION
+
+    # Unset functions
+    unset -f activate
+    unset -f init
+    unset -f makeapp
+    unset -f run
+    unset -f install
+    unset -f uninstall
+    unset -f add_framework
+    unset -f custom
 }
+
 
 init() {
     echo "Running init function"
@@ -53,8 +105,10 @@ init() {
 }
 
 makeapp() {
+    # run as swiftly makeapp app_name
+    # check if swiftly project is activated. if not, tell the user that no swiftly project is currently active
+    # from swiftly.core.main run 
     echo "Running makeapp function"
-    # Add your complex makeapp command here
 }
 
 run() {

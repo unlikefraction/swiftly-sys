@@ -1,14 +1,48 @@
 #!/bin/bash
 
-activate_python(){
-    # venv activate
-    # install all requirements
-    # update swiftly
-    echo "you are running python bruhhhh!"
+activate_python() {
+    # Get the project name from the environment variable
+    local project_name="$SWIFTLY_PROJECT_NAME"
+
+    # Check if the virtual environment exists
+    if [[ ! -d "venv${project_name}" ]]; then
+        echo "Error: Virtual environment 'venv${project_name}' not found."
+        return 1
+    fi
+
+    # Source the virtual environment's activate script
+    source venv${project_name}/bin/activate
+
+    # install and keep swiftly up-to-date
+    python3 -m pip install --upgrade pip > /dev/null 2>&1
+    python3 -m pip install swiftly-sys --upgrade > /dev/null 2>&1
+
+    # Install the requirements using the Python function
+    python3 -c "from swiftly.runtime.python.main import install_requirements; install_requirements()"
 }
 
-run(){
+deactivate_python() {
+    # Check if the virtual environment is activated
+    if [[ -z "$VIRTUAL_ENV" ]]; then
+        echo "Error: No virtual environment is currently activated."
+        return 1
+    fi
+
+    # Source the activate file to get the deactivate function
+    source "./venv${SWIFTLY_PROJECT_NAME}/bin/activate"
+
+    # Call the deactivate function from the activate file
+    deactivate
+}
+
+
+
+run_python(){
     echo "running python"
+}
+
+makeapp_python(){
+    
 }
 
 custom() {
