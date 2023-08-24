@@ -1,5 +1,5 @@
 import configparser
-import ast
+import os
 from swiftly.core.config import CONFIG_FILE
 from swiftly.utils.get import get_frameworks
 
@@ -13,6 +13,12 @@ def add_to_config(category, key, value):
     - value (str or list): The value to be set for the key.
     """
     config = configparser.ConfigParser()
+
+    # Check if CONFIG_FILE exists, if not, create it
+    if not os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, 'w') as f:
+            pass  # Just create the file
+
     config.read(CONFIG_FILE)
     
     if not config.has_section(category):
@@ -35,6 +41,18 @@ def add_runtime(name):
     """
     add_to_config("RUNTIME", "name", name)
     add_to_config("RUNTIME", "frameworks", "[]")
+    
+def add_app(name):
+    """
+    Adds an app to the list of apps in the configuration file.
+    
+    Args:
+    - name (str): The app name to be added.
+    """
+    apps = get_frameworks()
+    if name not in apps:
+        apps.append(name)
+    add_to_config("SWIFTLY", "apps", apps)
 
 def add_framework(name):
     """

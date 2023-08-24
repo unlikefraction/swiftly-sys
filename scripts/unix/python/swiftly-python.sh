@@ -35,14 +35,30 @@ deactivate_python() {
     deactivate
 }
 
-
+init_python(){
+    echo "initiating python"
+}
 
 run_python(){
     echo "running python"
 }
 
 makeapp_python(){
-    
+    echo "making app python"
+}
+
+install_pkg_python(){
+    python3 -m pip install "$@"
+    python3 -c "from swiftly.runtime.python.main import add_to_reqtxt; add_to_reqtxt()"
+}
+
+uninstall_pkg_python(){
+    python3 -m pip uninstall "$@"
+    python3 -c "from swiftly.runtime.python.main import add_to_reqtxt; add_to_reqtxt()"
+}
+
+makealive_python(){
+    python3 -c "from swiftly.runtime.python.main import makealive; makealive()"
 }
 
 custom() {

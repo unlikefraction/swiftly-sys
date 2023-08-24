@@ -15,6 +15,15 @@ def detect_python():
                 return True
     return False
 
+def run_check(arg=None):
+    if arg is None:
+        return True
+    
+    if '.py' in arg:
+        return True
+    else:
+        return False
+
 def run_command(command, loader, success_message, error_message):
     """Execute a shell command and handle its output with a loader."""
     result = subprocess.run(command, capture_output=True, text=True)
@@ -123,3 +132,7 @@ def makeapp(app_name):
             f.write(f"class {app_name.capitalize()}:\n    pass\n")
         else:
             f.write(f"def {app_name}")
+
+def makealive():
+    print("running makealive for python")
+    pass

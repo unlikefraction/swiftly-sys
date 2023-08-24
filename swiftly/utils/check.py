@@ -1,5 +1,6 @@
 import os
 import socket
+import re
 
 from swiftly.core.config import CONFIG_FILE
 
@@ -40,3 +41,8 @@ def is_online():
         except OSError:
             pass
     return False
+
+def is_git_url(link):
+    # Regular expression to match general git URLs
+    pattern = r"^(https?://|git@|git://).+\.git$"
+    return bool(re.match(pattern, link))

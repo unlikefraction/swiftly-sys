@@ -35,6 +35,19 @@ def get_config(category, key):
     except KeyError:
         return None
     
+def get_apps():
+    """
+    Fetches the apps from the swiftly.config file.
+
+    Returns:
+    - list: A list of apps under the 'SWIFTLY' category. Returns [] if not found.
+    """
+    apps_str = get_config("SWIFTLY", "apps")
+    if apps_str:
+        return ast.literal_eval(apps_str)
+    return []
+
+    
 def get_name():
     """
     Fetches the runtime name from swiftly.config file.
@@ -64,3 +77,35 @@ def get_frameworks():
     if frameworks_str:
         return ast.literal_eval(frameworks_str)
     return []
+
+
+def get_all_runtimes():
+    """
+    Retrieves a list of all available runtimes.
+
+    Returns:
+    - list: Names of detected runtimes.
+    """
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    runtime_dir = os.path.join(current_dir, '..', 'runtime')
+    runtimes = [d for d in os.listdir(runtime_dir) if os.path.isdir(os.path.join(runtime_dir, d)) and not d.startswith('__')]
+    
+    return runtimes
+
+def get_all_frameworks(runtime):
+    """
+    Retrieves a list of all available frameworks for a given runtime.
+
+    Args:
+    - runtime (str): The name of the runtime for which the frameworks should be fetched.
+
+    Returns:
+    - list: Names of detected frameworks for the specified runtime.
+    """
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    framework_dir = os.path.join(current_dir, '..', 'runtime', runtime, 'frameworks')
+    frameworks = [d for d in os.listdir(framework_dir) if os.path.isdir(os.path.join(framework_dir, d)) and not d.startswith('__')]
+    
+    return frameworks

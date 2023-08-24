@@ -1,4 +1,4 @@
-from swiftly.runtime.python.main import detect_python
+from swiftly.runtime.python.main import detect_python, run_check
 
 RUNTIME_CONFIG = {
     "name": "python",
@@ -9,24 +9,23 @@ RUNTIME_CONFIG = {
     # a list of custom functions. "command": "shell/bat function name"
     "custom": [],
     
+    "run_check": run_check,
+    
     # Allowed framework types, and it's configuration
     "allowed_framework_types": [
         {
             "name": "web",
             "exclusive": True, # only one of a kind in every project
-            "allow_override": ["run"],
         },
         
         {
             "name": "ai",
             "exclusive": False,
-            "allow_override": ["run", "makeapp"],
         },
         
         {
             "name": "others",
             "exclusive": False,
-            "allow_override": ["run", "makeapp"],
         },
     ]
 }
