@@ -1,7 +1,7 @@
 import configparser
 import os
 from swiftly.core.config import CONFIG_FILE
-from swiftly.utils.get import get_frameworks
+from swiftly.utils.get import get_frameworks, get_apps
 
 def add_to_config(category, key, value):
     """
@@ -49,7 +49,7 @@ def add_app(name):
     Args:
     - name (str): The app name to be added.
     """
-    apps = get_frameworks()
+    apps = get_apps()
     if name not in apps:
         apps.append(name)
     add_to_config("SWIFTLY", "apps", apps)

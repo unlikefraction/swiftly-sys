@@ -25,7 +25,7 @@ class Loader:
         self._running = False
         self._thread.join()
         icon = "\033[91m✗\033[0m" if failed else "\033[92m✓\033[0m"  # \033[91m is red and \033[92m is green
-        sys.stdout.write(f'\r{icon} {message}\n')
+        sys.stdout.write(f'\r{icon} {message} {" "*10}\n')
         sys.stdout.flush()
 
 # Example usage:

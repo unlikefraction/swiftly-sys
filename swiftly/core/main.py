@@ -10,7 +10,7 @@ import importlib
 from swiftly.utils.loader import Loader
 from swiftly.utils.get import get_config, get_frameworks, get_runtime, get_all_frameworks, get_all_runtimes
 from swiftly.utils.cli import clireturn
-from swiftly.utils.do import add_to_config, add_framework, add_runtime
+from swiftly.utils.do import add_to_config, add_framework, add_runtime, add_app
 from swiftly.utils.check import is_swiftly, is_online, is_using_git
 from swiftly.core.config import SWIFTLY_PROJECT_LOCATION_VAR, SWIFTLY_PROJECT_NAME_VAR, CONFIG_FILE
 
@@ -79,7 +79,7 @@ def init(name=None, runtime=None, frameworks=[], inPlace=False):
     # Get or confirm project name
     name = questionary.text(
         "Swiftly project name:",
-        default=name,
+        default=name if name else "",
         validate=validate_project_name
     ).ask()
 
@@ -186,10 +186,6 @@ def makeapp(name=None, confirmed=False):
             executionList.extend(custom_choices)
     else:
         executionList.append(execute[0])
-
-
-    # Modify executionList to include runtime name for frameworks
-    executionList = [f"{runtime_name}-{item}" if item != runtime_name else item for item in executionList]
 
     # Print the final execution list
     clireturn(f"{name}<=====>" + ",".join(executionList))
@@ -333,8 +329,47 @@ def add_new_framework(name=None):
         clireturn(selected_framework)
     else:
         clireturn("exit")
+        
 
-def custom():
+def custom(command):
     """Handle custom operations."""
-    # Logic for custom operations goes here
-    pass
+    runtime  = get_runtime()
+    frameworks = get_frameworks()
+    
+    possible_executors = []
+
+    # Get RUNTIME_CONFIG dict from swiftly.runtime.{runtime}.config.py
+    runtime_config_module = importlib.import_module(f'swiftly.runtime.{runtime}.config')
+    RUNTIME_CONFIG = getattr(runtime_config_module, 'RUNTIME_CONFIG', {})
+    custom_runtime_commands = RUNTIME_CONFIG.get('custom', {})
+    if command in custom_runtime_commands:
+        possible_executors.append((runtime, custom_runtime_commands[command]))
+
+    # For all frameworks in frameworks
+    for framework in frameworks:
+        # Get FRAMEWORK_CONFIG from swiftly.runtime.{runtime}.frameworks.{framework}.config.py
+        framework_config_module = importlib.import_module(f'swiftly.runtime.{runtime}.frameworks.{framework}.config')
+        FRAMEWORK_CONFIG = getattr(framework_config_module, 'FRAMEWORK_CONFIG', {})
+        custom_framework_commands = FRAMEWORK_CONFIG.get('custom', {})
+        if command in custom_framework_commands:
+            possible_executors.append((f"{runtime}-{framework}", custom_framework_commands[command]))
+
+    # If there are multiple possible executors, ask the user to choose one
+    if len(possible_executors) > 1:
+        choices = [executor[0].split('-')[1] if '-' in executor[0] else executor[0] for executor in possible_executors]
+        selected_executor = questionary.select(
+            "Multiple executors detected. Please choose one:",
+            choices=choices
+        ).ask()
+    elif possible_executors:
+        selected_executor = possible_executors[0][0]
+    else:
+        print(f"umm... what? 🤨: {command}")
+        clireturn("exit")
+        return
+    
+    selected_executor = selected_executor if selected_executor == runtime else f"{runtime}-{selected_executor}" if "-" not in selected_executor else selected_executor
+    for executor in possible_executors:
+        if executor[0] == selected_executor:
+            selected_executor_command = executor[1]
+    clireturn(f"{selected_executor}<=====>{selected_executor_command}")

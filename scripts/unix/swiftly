@@ -172,10 +172,12 @@ init() {
     "init_${runtime}"
 
     # Loop through frameworks, source their scripts, and add them.
-    for framework in $frameworks; do
-        source "swiftly-${runtime}-${framework}.sh"
-        "add_framework_${framework}"
-    done
+    if [[ "$frameworks" != "" ]]; then
+        for framework in $frameworks; do
+            source "swiftly-${runtime}-${framework}.sh"
+            "add_framework_${framework}"
+        done
+    fi
 
     # Activate the project.
     activate
@@ -210,22 +212,30 @@ makeapp() {
 
     # Parse the result to extract the project name and associated runtime/frameworks.
     local result_str="$(read_cli_result)"
-
     local app_name="${result_str%%<=====>*}"
-    local execution_list="${result_str##*<=====>}"
+    local rf_str="${result_str##*<=====>}"
     
-    # Convert the comma-separated string into an array
-    IFS=',' read -ra execute_array <<< "$execution_list"
+    local runtime="${rf_str%%,*}"
+    local rest_frameworks="${rf_str#*,}"
+    
+    # Split rest_frameworks only if it has more than one element
+    if [[ "$rest_frameworks" != "$runtime" ]]; then
+        local frameworks=$(echo $rest_frameworks | tr ',' ' ')
+    else
+        local frameworks=""
+    fi
 
-    # Iterate through the execution list
-    for execute in "${execute_array[@]}"; do
-        # Source the appropriate shell script
-        source "swiftly-${execute}.sh"
+    # Source the runtime's script and initialize it.
+    source "swiftly-${runtime}.sh"
+    makeapp_${runtime} "$app_name"
 
-        # Replace '-' with '_' and call the appropriate function
-        makeapp_function_name="makeapp_${execute//-/_}"
-        $makeapp_function_name "$app_name"
-    done
+    # Loop through frameworks, source their scripts, and add them.
+    if [[ "$frameworks" != "" ]]; then
+        for framework in $frameworks; do
+            source "swiftly-${runtime}-${framework}.sh"
+            makeapp_${runtime}_${framework} "$app_name"
+        done
+    fi
 
     python3 -c "from swiftly.utils.do import add_app; add_app('$app_name')"
 }
@@ -374,13 +384,28 @@ makealive() {
 
     # Activate the project.
     activate
-    "makeapp_${runtime}" "$project_name" -confirmed
+    makeapp "$project_name" -confirmed
 }
 
 # Function to handle custom commands
 custom() {
-    echo "Running custom function with arguments: $@"
-    # Add your custom command handling logic here
+    # Check if the project is already activated
+    if [[ "$SWIFTLY_ACTIVATED" != "true" ]]; then
+        echo "No swiftly project activated."
+        return
+    fi
+
+    python -c "from swiftly.core.main import custom; custom('$1')"
+
+    local result_str="$(read_cli_result)"
+    local filename="${result_str%%<=====>*}"
+    local function_name="${result_str##*<=====>}"
+
+    # Source the appropriate shell file
+    source "swiftly-${filename}.sh"
+
+    # Call the function
+    $function_name "${@:1}"  # Pass all arguments after the first one to the function
 }
 
 # Check if a function exists and call it, otherwise call the custom function

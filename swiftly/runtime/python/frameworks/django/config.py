@@ -8,7 +8,11 @@ FRAMEWORK_CONFIG = {
     "detect": detect_django,
     
     # a list of custom functions. "command": "shell/bat function name"
-    "custom": [],
+    "custom": {
+        "migrate": "manage_django_commands",
+        "makemigrations": "manage_django_commands",
+    },
+    
     "framework_commands" : ['makeapp', 'run'],
     "run_check": run_check
 }
