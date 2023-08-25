@@ -3,8 +3,11 @@ import subprocess
 import re
 
 from swiftly.utils.loader import Loader
-from swiftly.utils.get import get_config
+from swiftly.utils.get import get_config, get_apps
 from swiftly.utils.check import is_online
+from swiftly.utils.do import add_to_config, add_app
+from swiftly.utils.template import render_template
+from swiftly.utils.cli import clireturn
 from swiftly.core.config import SWIFTLY_PROJECT_LOCATION_VAR
 
 def detect_python():
@@ -15,22 +18,17 @@ def detect_python():
                 return True
     return False
 
-def run_check(arg=None):
-    if arg is None:
-        return True
+def run_check(arg=""):
+    apps = get_apps()
     
-    if '.py' in arg:
-        return True
-    else:
-        return False
-
-def run_command(command, loader, success_message, error_message):
-    """Execute a shell command and handle its output with a loader."""
-    result = subprocess.run(command, capture_output=True, text=True)
-    if result.returncode == 0:
-        loader.end(success_message)
-    else:
-        loader.end(result.stderr + "\n" + error_message)
+    if arg:
+        if arg in apps:
+            return True
+        
+        if '.py' in arg:
+            return True
+    
+    return False
 
 """
 ACTIVATE
@@ -91,48 +89,186 @@ def install_requirements():
 INIT
 """
 
-# def init():
-#     """Initialize the project by creating a virtual environment and setting up the app."""
-#     os.chdir(os.environ[SWIFTLY_PROJECT_LOCATION_VAR])
+def init():
+    name = get_config("SWIFTLY", "name")
+    add_to_config("RUNTIME", "object_oriented", "False")
     
-#     # Create virtual environment
-#     project_name = os.environ[SWIFTLY_PROJECT_NAME_VAR]
-#     venv_name = f"venv{project_name}"
-#     python_command = "python3" if platform.system() in ["Linux", "Darwin"] else "python"
+    # Create config.py
+    with open("config.py", "w") as f:
+        f.write("# configs here 🛠️\n")
     
-#     loader = Loader()
-#     loader.start("Creating virtual environment...")
-#     run_command([python_command, "-m", "venv", venv_name], loader, "Virtual environment created successfully!", "Failed to create virtual environment!")
+    # Create requirements.txt
+    with open("requirements.txt", "w") as f:
+        f.write("")
+        
+    loader = Loader()
+    loader.start("Creating virtual environment")
     
-#     # Check for object-oriented configuration and prompt user if needed
-#     object_oriented = get_config("CONFIG", "object_oriented")
-#     if not object_oriented:
-#         answer = questionary.select("Do you want to use object-oriented programming?", choices=["Yes", "No"]).ask()
-#         object_oriented = True if answer == "Yes" else False
-#         add_to_config("CONFIG", "object_oriented", object_oriented)
+    # Create a virtual environment
+    venv_name = f"venv{name}"
     
-#     # Create the main app
-#     makeapp(project_name)
+    python_command = "python3" if os.name == "posix" else "python"
+    
+    subprocess.run([python_command, "-m", "venv", venv_name])
+    loader.end("Virtual environment created")
+    
+    # Render the .gitignore content
+    gitignore_content = render_template("gitignore.txt", {"venv_name": venv_name})
+    
+    # Merge with existing .gitignore content if it exists
+    if os.path.exists(".gitignore"):
+        with open(".gitignore", "r") as f:
+            existing_content = set(f.readlines())
+        
+        merged_content = existing_content.union(set(gitignore_content.splitlines(True)))
+        gitignore_content = "".join(merged_content)
+    
+    # Create or update .gitignore file
+    with open(".gitignore", "w") as f:
+        f.write(gitignore_content)
+
+"""
+MAKEAPP
+"""
 
 def makeapp(app_name):
     """Create a new app with the given name and set up the necessary files."""
-    os.makedirs(app_name, exist_ok=True)
+    loader = Loader()
     
-    # Create __init__.py
-    with open(f"{app_name}/__init__.py", "w") as f:
-        f.write(f"from .{app_name} import *\n\n")
+    # Split the app_name by '.' to handle nested modules
+    parts = app_name.split('.')
     
-    # Create __main__.py
-    with open(f"{app_name}/__main__.py", "w") as f:
-        f.write(f"from .{app_name} import *\n\n# Run and try your code here, use `swiftly run {app_name}` to run the code inside __main__\n")
-    
-    # Create the main app file
-    with open(f"{app_name}/{app_name}.py", "w") as f:
-        if get_config("CONFIG", "object_oriented") == "True":
-            f.write(f"class {app_name.capitalize()}:\n    pass\n")
-        else:
-            f.write(f"def {app_name}")
+    # Create directories and files recursively
+    current_path = ''
+    for index, part in enumerate(parts):
+        current_path = os.path.join(current_path, part)
+        
+        # Create directory if it doesn't exist
+        os.makedirs(current_path, exist_ok=True)
+        
+        # Create __init__.py if it doesn't exist
+        init_file = os.path.join(current_path, '__init__.py')
+        if not os.path.exists(init_file):
+            with open(init_file, 'w') as f:
+                f.write(f'from .{part} import *\n\n')
+                
+        # Create tests.py if it doesn't exist
+        init_file = os.path.join(current_path, 'tests.py')
+        if not os.path.exists(init_file):
+            with open(init_file, 'w') as f:
+                f.write(f'from .{part} import *\n\n# May all your tests pass\n')
+        
+        # If it's the last part of the app_name, create __main__.py and the main app file
+        if index == len(parts) - 1:
+            main_file = os.path.join(current_path, '__main__.py')
+            if not os.path.exists(main_file):
+                with open(main_file, 'w') as f:
+                    f.write(f"from .{part} import *\n\n# Run and try your code here, use `swiftly run {app_name}` to run the code inside __main__\n")
+            
+            app_file = os.path.join(current_path, f"{part}.py")
+            if not os.path.exists(app_file):
+                with open(app_file, 'w') as f:
+                    if get_config("RUNTIME", "object_oriented") == "True":
+                        f.write(f"class {part.capitalize()}:\n")
+                        f.write(f"    def __init__(self):\n")
+                        f.write(f"        pass\n\n")
+                    else:
+                        f.write(f"def {part}():\n")
+                        f.write(f"    print('Hello from {part} 👋')\n\n")
+
+"""
+MAKEALIVE
+"""
+
+def get_gitignore():
+    """Return a list of patterns from .gitignore."""
+    gitignore_patterns = []
+    if os.path.exists('.gitignore'):
+        with open('.gitignore', 'r') as f:
+            gitignore_patterns = f.read().splitlines()
+    return gitignore_patterns
+
+def is_ignored(path, gitignore_patterns):
+    """Check if a given path matches any of the .gitignore patterns."""
+    for pattern in gitignore_patterns:
+        if os.path.basename(path) == pattern:
+            return True
+    return False
 
 def makealive():
-    print("running makealive for python")
-    pass
+    apps = []
+    gitignore_patterns = get_gitignore()
+    
+    def explore_dir(directory, current_app):
+        """Recursively explore directories and build app names."""
+        # Skip directories listed in .gitignore
+        if is_ignored(directory, gitignore_patterns):
+            return
+
+        # Check if the current directory contains any .py files
+        if any(fname.endswith('.py') for fname in os.listdir(directory)):
+            if current_app:
+                app_name = f"{current_app}.{os.path.basename(directory)}"
+            else:
+                app_name = os.path.basename(directory)
+            
+            apps.append(app_name)
+            
+            # Add __init__.py and __main__.py if they don't exist
+            init_file = os.path.join(directory, '__init__.py')
+            main_file = os.path.join(directory, '__main__.py')
+            
+            if not os.path.exists(init_file):
+                with open(init_file, 'w') as f:
+                    f.write('')
+            
+            if not os.path.exists(main_file):
+                with open(main_file, 'w') as f:
+                    f.write(f"# Run and try your code here, use `swiftly run {app_name}` to run the code inside __main__\n")
+        else:
+            app_name = current_app
+
+        # Explore subdirectories
+        for item in os.listdir(directory):
+            item_path = os.path.join(directory, item)
+            if os.path.isdir(item_path):
+                explore_dir(item_path, app_name)
+
+    # Start exploring from the current directory
+    explore_dir(os.getcwd(), "")
+
+    # Add all apps to config
+    for app in apps:
+        add_app(app)
+        
+    init()
+
+
+"""
+RUN
+"""
+
+def run_from_base(arg=None):
+    """weather to run from SWIFTLY_PROJECT_LOCATION or not"""
+    apps = get_apps()
+    
+    if arg in apps:
+        return True
+    
+    if '.py' in arg:
+        return False
+    
+
+def run(arg=None):
+    """Tell how to run the python script"""
+    apps = get_apps()
+    
+    if arg in apps:
+        clireturn(f"-m {arg}")
+        return
+    
+    if '.py' in arg:
+        clireturn(arg)
+        return
+
+

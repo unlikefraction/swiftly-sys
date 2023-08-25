@@ -7,10 +7,7 @@ RUNTIME_CONFIG = {
     "detect": detect_python,
     
     # a list of custom functions. "command": "shell/bat function name"
-    "custom": {
-        "version": "version_python",
-        "migrate": "some_function"
-    },
+    "custom": {},
     
     "run_check": run_check,
     

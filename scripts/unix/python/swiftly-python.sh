@@ -36,15 +36,25 @@ deactivate_python() {
 }
 
 init_python(){
-    echo "initiating python"
+    python3 -c "from swiftly.runtime.python.main import init; init()"
 }
 
 run_python(){
-    echo "running python"
+    from_base=$(python3 -c "from swiftly.runtime.python.main import run_from_base; run_from_base('$@')")
+
+    # Check if changing base is needed
+    if [[ "$from_base" == "True" ]]; then
+        cd $SWIFTLY_PROJECT_LOCATION
+    fi
+
+    python3 -c "from swiftly.runtime.python.main import run; run('$@')"
+
+    local to_run="$(read_cli_result)"
+    python3 $to_run
 }
 
 makeapp_python(){
-    echo "making app python"
+    python3 -c "from swiftly.runtime.python.main import makeapp; makeapp('$1')"
 }
 
 install_pkg_python(){
@@ -59,14 +69,6 @@ uninstall_pkg_python(){
 
 makealive_python(){
     python3 -c "from swiftly.runtime.python.main import makealive; makealive()"
-}
-
-version_python(){
-    python3 --version
-}
-
-some_function(){
-    echo "it's a django func, but needed to do something to conflict :)"
 }
 
 # Check if a function exists and call it, otherwise call the custom function

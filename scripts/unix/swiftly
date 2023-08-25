@@ -21,8 +21,8 @@ activate() {
 
     # Handle the result
     case $result in
-        "init")
-            init  # Assuming you have an init function defined elsewhere in your script
+        "makealive")
+            makealive  # Assuming you have an init function defined elsewhere in your script
             return 0  # Exit after initialization
             ;;
         "exit")
@@ -249,13 +249,13 @@ run() {
     fi
 
     # Check if an app name has been provided
-    local app_name="$1"
+    local arg="$@"
 
     # Run run() from swiftly.core.main.py and pass app_name as a parameter if available
-    if [[ -z "$app_name" ]]; then
+    if [[ -z "$arg" ]]; then
         python3 -c "from swiftly.core.main import run; run()"
     else
-        python3 -c "from swiftly.core.main import run; run('$app_name')"
+        python3 -c "from swiftly.core.main import run; run('$arg')"
     fi
 
     execute=$(read_cli_result)
@@ -269,7 +269,7 @@ run() {
 
     # Replace '-' with '_' and call the appropriate function
     run_function_name="run_${execute//-/_}"
-    $run_function_name
+    $run_function_name "$@"
 }
 
 install() {
@@ -375,6 +375,7 @@ makealive() {
 
     # Source the runtime's script and initialize it.
     source "swiftly-${runtime}.sh"
+    "makealive_${runtime}"
 
     # Loop through frameworks, if any, source their scripts, and add them.
     for framework in $frameworks; do

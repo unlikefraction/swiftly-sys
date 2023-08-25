@@ -1,7 +1,6 @@
 import configparser
 import os
-from swiftly.core.config import CONFIG_FILE
-from swiftly.utils.get import get_frameworks, get_apps
+from swiftly.utils.get import get_frameworks, get_apps, get_config_file_path
 
 def add_to_config(category, key, value):
     """
@@ -13,13 +12,15 @@ def add_to_config(category, key, value):
     - value (str or list): The value to be set for the key.
     """
     config = configparser.ConfigParser()
+    
+    config_file = get_config_file_path()
 
     # Check if CONFIG_FILE exists, if not, create it
-    if not os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, 'w') as f:
+    if not os.path.exists(config_file):
+        with open(config_file, 'w') as f:
             pass  # Just create the file
 
-    config.read(CONFIG_FILE)
+    config.read(config_file)
     
     if not config.has_section(category):
         config.add_section(category)
@@ -29,7 +30,7 @@ def add_to_config(category, key, value):
     else:
         config[category][key] = value
     
-    with open(CONFIG_FILE, 'w') as configfile:
+    with open(config_file, 'w') as configfile:
         config.write(configfile)
 
 def add_runtime(name):
@@ -75,12 +76,13 @@ def remove_from_config(category, key):
     - key (str): The key to be removed.
     """
     config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
+    config_file = get_config_file_path()
+    config.read(config_file)
     
     if config.has_section(category) and key in config[category]:
         config[category].pop(key)
     
-    with open(CONFIG_FILE, 'w') as configfile:
+    with open(config_file, 'w') as configfile:
         config.write(configfile)
 
 def remove_framework(name):

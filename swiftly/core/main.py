@@ -23,7 +23,7 @@ def check_swiftly():
     if not is_swiftly():
         answer = questionary.confirm("This is not a swiftly project. Do you want to convert it to a swiftly project?").ask()
         if answer:
-            clireturn("init")
+            clireturn("makealive")
         else:
             clireturn("exit")
     else:
@@ -129,6 +129,14 @@ def init(name=None, runtime=None, frameworks=[], inPlace=False):
 MAKEAPP
 """
 
+def validate_app_name(name):
+    """Validate the project name."""
+    if len(name) <= 1:
+        return "Name should be at least 2 characters long."
+    if not re.match(r'^[a-zA-Z0-9_.]+$', name):
+        return "Name can only contain letters, numbers, and underscores."
+    return True
+
 def makeapp(name=None, confirmed=False):
     """Create a new app."""
     # Get runtime and frameworks
@@ -152,9 +160,9 @@ def makeapp(name=None, confirmed=False):
     # Ask for app name if not provided or confirm if provided
     if not confirmed:
         if name:
-            name = questionary.text("Confirm or modify the app name:", default=name, validate=validate_project_name).ask()
+            name = questionary.text("Confirm or modify the app name:", default=name, validate=validate_app_name).ask()
         else:
-            name = questionary.text("Enter the name of the app:", validate=validate_project_name).ask()
+            name = questionary.text("Enter the name of the app:", validate=validate_app_name).ask()
 
     executionList = []
 

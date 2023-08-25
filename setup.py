@@ -6,7 +6,7 @@ scripts = [f for f in glob.glob('scripts/unix/**/*', recursive=True) + glob.glob
 
 setup(
     name='swiftly-sys',
-    version='0.0.92',
+    version='0.0.96',
     license='Apache2',
     packages=find_packages(),
     include_package_data=True,
@@ -24,5 +24,6 @@ setup(
             'questionary',
             'requests',
             'pipdeptree',
+            'jinja2',
         ],
 )
