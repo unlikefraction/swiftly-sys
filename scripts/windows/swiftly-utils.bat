@@ -1,24 +1,13 @@
 @echo off
 setlocal enabledelayedexpansion
-@call swiftly-utils.bat
 
-:: Check if the first argument is "activate"
-if "%~1"=="activate" (
-    call :activate
-    exit /b 0
-)
-
-if "%~1"=="makealive" (
-    call :makealive
-    exit /b 0
-)
-
-
-:: Define the activate function
-:activate
+:read_cli_result
     :: Run check_swiftly from swiftly.core.main.py
-    for /f %%i in ('python3 -c "from swiftly.core.main import check_swiftly; check_swiftly()"') do set result=%%i
-    echo check_swiftly done successfully
+    python3 -c "from swiftly.core.main import check_swiftly; check_swiftly()"
+
+    :: Use read_cli_result from swiftly-utils.bat to read the result
+    call swiftly-utils.bat read_cli_result
+    set result=%CLI_RESULT%
 
     :: Handle the result
     if "%result%"=="makealive" (
@@ -71,7 +60,3 @@ if "%~1"=="makealive" (
     set SWIFTLY_ACTIVATED=true
     echo SWIFTLY_ACTIVATED successfully done successfully
 goto :eof
-
-:makealive
-    echo makealive running -_-
-
