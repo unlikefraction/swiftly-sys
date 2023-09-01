@@ -196,52 +196,46 @@ def is_ignored(path, gitignore_patterns):
     return False
 
 def makealive():
+
     apps = []
+    base_path = os.getcwd()
     gitignore_patterns = get_gitignore()
-    
-    def explore_dir(directory, current_app):
-        """Recursively explore directories and build app names."""
-        # Skip directories listed in .gitignore
-        if is_ignored(directory, gitignore_patterns):
-            return
 
-        # Check if the current directory contains any .py files
-        if any(fname.endswith('.py') for fname in os.listdir(directory)):
-            if current_app:
-                app_name = f"{current_app}.{os.path.basename(directory)}"
-            else:
-                app_name = os.path.basename(directory)
-            
-            apps.append(app_name)
-            
-            # Add __init__.py and __main__.py if they don't exist
-            init_file = os.path.join(directory, '__init__.py')
-            main_file = os.path.join(directory, '__main__.py')
-            
-            if not os.path.exists(init_file):
-                with open(init_file, 'w') as f:
-                    f.write('')
-            
-            if not os.path.exists(main_file):
-                with open(main_file, 'w') as f:
-                    f.write(f"# Run and try your code here, use `swiftly run {app_name}` to run the code inside __main__\n")
-        else:
-            app_name = current_app
-
-        # Explore subdirectories
+    def explore_dir(directory):
         for item in os.listdir(directory):
             item_path = os.path.join(directory, item)
+            
             if os.path.isdir(item_path):
-                explore_dir(item_path, app_name)
+                if is_ignored(item_path, gitignore_patterns):
+                    continue
+                
+                files = os.listdir(item_path)
+                if any(fname.endswith('.py') for fname in files):
+                    app_name = os.path.relpath(item_path, base_path).replace(os.sep, '.')
+                    apps.append(app_name)
+                    
+                    init_file = os.path.join(item_path, '__init__.py')
+                    main_file = os.path.join(item_path, '__main__.py')
+                    
+                    if not os.path.exists(init_file):
+                        with open(init_file, 'w') as f:
+                            f.write('')
+                    
+                    if not os.path.exists(main_file):
+                        with open(main_file, 'w') as f:
+                            f.write(f"# Run and try your code here, use `swiftly run {app_name}` to run the code inside __main__\n")
+                    
+                    sub_dirs = [f for f in files if os.path.isdir(os.path.join(item_path, f))]
+                    if sub_dirs:
+                        explore_dir(item_path)
 
-    # Start exploring from the current directory
-    explore_dir(os.getcwd(), "")
+    explore_dir(base_path)
 
     # Add all apps to config
     for app in apps:
-        add_app(app)
-        
-    init()
+        add_app(app)  # Assuming this function is defined elsewhere
+
+    init()  # Assuming this function is defined elsewhere
 
 
 """
