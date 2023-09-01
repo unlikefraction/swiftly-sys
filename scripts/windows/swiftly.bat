@@ -1,5 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
+
 @call swiftly-utils.bat
 
 :: Check if the first argument is "activate"
